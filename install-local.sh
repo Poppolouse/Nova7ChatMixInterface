@@ -10,6 +10,8 @@ HOME_STATE="$HOME/.local/state/nova7-chatmix"
 
 mkdir -p "$HOME_BIN" "$HOME_APPS" "$HOME_SYSTEMD" "$HOME_STATE"
 
+"$ROOT_DIR/scripts/install-headsetcontrol.sh"
+
 install -m 0755 "$ROOT_DIR/mixer/nova7_mixer.py" "$HOME_BIN/nova7-mixer"
 install -m 0755 "$ROOT_DIR/scripts/nova7-virtualaudio.sh" "$HOME_BIN/nova7-virtualaudio"
 install -m 0644 "$ROOT_DIR/systemd/nova7-mixer.service" "$HOME_SYSTEMD/nova7-mixer.service"

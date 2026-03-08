@@ -14,6 +14,7 @@ It creates dedicated `GameMix` and `ChatMix` virtual sinks, reads the headset Ch
 - **Per-app audio routing** — list running audio apps in the applet and move them between `GameMix` and `ChatMix` sinks
 - **App restriction warnings** — warns when moving apps known to manage their own audio (Discord, Teams, Zoom, Slack)
 - **Dynamic panel icon** — headphones icon when connected, audio-card icon when disconnected
+- **Live connection detection** — the applet treats the headset as connected only when `headsetcontrol` can read live data, not merely when the USB dongle is plugged in
 - **State file** — the mixer writes live status to `~/.local/state/nova7-chatmix/status.json` (atomic writes) for the applet and external tools
 - **Structured logging** — configurable via the `NOVA7_LOG_LEVEL` environment variable
 - **Resilient reconnection** — exponential backoff when the headset disconnects, automatic recovery on reconnect
@@ -26,6 +27,7 @@ It creates dedicated `GameMix` and `ChatMix` virtual sinks, reads the headset Ch
 
 | Path | Description |
 |------|-------------|
+| `scripts/install-headsetcontrol.sh` | Downloads and builds the pinned official `HeadsetControl 3.1.0` release into `~/.local/bin/`. |
 | `mixer/nova7_mixer.py` | Polls `headsetcontrol` for ChatMix wheel position and battery level; maps the wheel to sink volumes; writes state to `~/.local/state/nova7-chatmix/status.json`. |
 | `scripts/nova7-virtualaudio.sh` | Creates the `GameMix` and `ChatMix` null sinks with `pactl`. |
 | `systemd/*.service` | Starts the virtual audio layer and the mixer loop as user services. |
@@ -34,7 +36,7 @@ It creates dedicated `GameMix` and `ChatMix` virtual sinks, reads the headset Ch
 ## Requirements
 
 - Linux with PipeWire and `pactl`
-- `headsetcontrol` with Arctis Nova 7 support
+- Network access during install, to fetch and build the pinned `HeadsetControl 3.1.0` source release
 - Correct udev permissions for HID access
 - Rust toolchain (`cargo`) to build the COSMIC applet
 - COSMIC desktop for panel integration (the audio services work without it)
@@ -69,6 +71,8 @@ This installs:
 
 | File | Destination |
 |------|-------------|
+| HeadsetControl 3.1.0 binary | `~/.local/bin/headsetcontrol.bin` |
+| HeadsetControl wrapper | `~/.local/bin/headsetcontrol` |
 | Mixer script | `~/.local/bin/nova7-mixer` |
 | Virtual audio script | `~/.local/bin/nova7-virtualaudio` |
 | Mixer service | `~/.config/systemd/user/nova7-mixer.service` |
@@ -78,6 +82,7 @@ This installs:
 
 The install script also:
 
+- Downloads and builds the pinned official `HeadsetControl 3.1.0` release into `~/.local/bin/`
 - Creates the state directory `~/.local/state/nova7-chatmix/`
 - Reloads user `systemd`
 - Enables and restarts the services

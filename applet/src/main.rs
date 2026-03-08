@@ -18,7 +18,6 @@ use std::time::{Duration, SystemTime};
 
 const APP_ID: &str = "io.github.poppolouse.CosmicAppletNovaChatMix";
 const SERVICE_NAME: &str = "nova7-mixer.service";
-const EXPECTED_USB_ID: &str = "1038:2202";
 const EXPECTED_DEVICE_NAME: &str = "Arctis Nova 7";
 const ICON_CONNECTED: &str = "audio-headphones-symbolic";
 const ICON_DISCONNECTED: &str = "audio-card-symbolic";
@@ -129,21 +128,22 @@ fn gather_chatmix() -> Option<i32> {
         .and_then(|s| s.trim().parse().ok())
 }
 
+fn headsetcontrol_ready() -> bool {
+    command_text("headsetcontrol", &["-m", "-o", "short"])
+        .and_then(|s| s.trim().parse::<i32>().ok())
+        .is_some()
+}
+
 fn detect_headset() -> bool {
     if let Some(sf) = read_state_file() {
         if let Some(c) = sf.headset_connected {
             return c;
         }
     }
-    command_stdout("lsusb", &[])
-        .map(|out| {
-            out.lines().any(|l| {
-                l.contains(EXPECTED_USB_ID)
-                    || l.to_ascii_lowercase()
-                        .contains(&EXPECTED_DEVICE_NAME.to_ascii_lowercase())
-            })
-        })
-        .unwrap_or(false)
+    // USB presence is not enough: the Nova 7 dongle can stay attached while the
+    // headset itself is powered off. Treat the headset as connected only when
+    // headsetcontrol can read live data from it.
+    headsetcontrol_ready()
 }
 
 /// Map PulseAudio sink indices to sink names via `pactl list sinks short`.
