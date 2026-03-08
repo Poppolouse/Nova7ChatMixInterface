@@ -181,4 +181,4 @@ journalctl --user -u nova7-mixer.service -f
 - This project targets the SteelSeries Arctis Nova 7, not the Nova Pro Wireless.
 - The install uses user-local paths (`~/.local/`) — no root permissions required.
 - The COSMIC applet is optional. The audio services and state file work without it.
-- The applet polls live data every 3 seconds and battery data every 30 seconds.
+- The applet polls live data every 3 seconds and battery data every 5 seconds.

@@ -107,11 +107,18 @@ fn mix_to_volumes(mix: i32) -> (i32, i32) {
 
 fn gather_battery() -> (Option<i32>, bool) {
     if let Some(sf) = read_state_file() {
+        if sf.headset_connected == Some(false) {
+            return (None, false);
+        }
         if let Some(level) = sf.battery_level {
-            return (Some(level), sf.battery_charging.unwrap_or(false));
+            if level >= 0 {
+                return (Some(level.clamp(0, 100)), sf.battery_charging.unwrap_or(false));
+            }
+            return (None, false);
         }
     }
     match command_text("headsetcontrol", &["-b", "-o", "short"]) {
+        Some(s) if s.trim().parse::<i32>().ok().is_some_and(|v| v < 0) => (None, false),
         Some(s) if s.trim() == "-1" => (None, true),
         Some(s) => (s.trim().parse::<i32>().ok().map(|v| v.clamp(0, 100)), false),
         None => (None, false),

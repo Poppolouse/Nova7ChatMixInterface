@@ -12,7 +12,7 @@ from pathlib import Path
 from shutil import which
 
 POLL_SECONDS = 1
-BATTERY_POLL_SECONDS = 30
+BATTERY_POLL_SECONDS = 5
 MAX_BACKOFF_SECONDS = 10
 GAME_SINK = "GameMix"
 CHAT_SINK = "ChatMix"
@@ -67,10 +67,49 @@ def current_chatmix() -> int | None:
         return None
 
 
-def current_battery() -> tuple[int | None, bool | None]:
-    """Return (battery_level, battery_charging). Either may be None."""
+def _clamp_battery_level(value: object) -> int | None:
+    if not isinstance(value, int):
+        return None
+    if value < 0:
+        return None
+    return max(0, min(100, value))
+
+
+def current_battery() -> tuple[int | None, bool | None, bool | None]:
+    """Return (battery_level, battery_charging, headset_connected)."""
     level: int | None = None
     charging: bool | None = None
+    connected: bool | None = None
+
+    # Prefer JSON because it includes the battery status enum.
+    try:
+        proc = subprocess.run(
+            ["headsetcontrol", "-b", "-o", "json"],
+            text=True,
+            capture_output=True,
+        )
+        if proc.returncode == 0:
+            payload = json.loads(proc.stdout)
+            devices = payload.get("devices") or []
+            battery = devices[0].get("battery") if devices else None
+            if isinstance(battery, dict):
+                status = str(battery.get("status", "")).upper()
+                level = _clamp_battery_level(battery.get("level"))
+
+                if status == "BATTERY_CHARGING":
+                    charging = True
+                    connected = True
+                elif status == "BATTERY_AVAILABLE":
+                    charging = False
+                    connected = True
+                elif status in {"BATTERY_UNAVAILABLE", "BATTERY_TIMEOUT", "BATTERY_ERROR"}:
+                    charging = False
+                    connected = False
+    except (FileNotFoundError, json.JSONDecodeError, IndexError, KeyError, TypeError):
+        pass
+
+    if connected is not None:
+        return level, charging, connected
 
     # Battery level
     try:
@@ -82,7 +121,7 @@ def current_battery() -> tuple[int | None, bool | None]:
             text = proc.stdout.strip()
             if text:
                 try:
-                    level = int(text)
+                    level = _clamp_battery_level(int(text))
                 except ValueError:
                     log.debug("Non-integer battery output: %r", text)
     except FileNotFoundError:
@@ -108,7 +147,12 @@ def current_battery() -> tuple[int | None, bool | None]:
     except FileNotFoundError:
         pass
 
-    return level, charging
+    if level is not None:
+        connected = True
+    elif charging is True:
+        connected = True
+
+    return level, charging, connected
 
 
 def mix_to_volumes(mix_level: int) -> tuple[int, int]:
@@ -178,6 +222,7 @@ def main() -> None:
     chat_vol = 100
     battery_level: int | None = None
     battery_charging: bool | None = None
+    headset_connected = False
     last_battery_poll = 0.0
     backoff = POLL_SECONDS
     consecutive_failures = 0
@@ -187,13 +232,20 @@ def main() -> None:
 
         # Poll battery at a lower frequency
         if now - last_battery_poll >= BATTERY_POLL_SECONDS:
-            battery_level, battery_charging = current_battery()
+            battery_level, battery_charging, battery_connected = current_battery()
             last_battery_poll = now
-            log.debug("Battery: level=%s charging=%s", battery_level, battery_charging)
+            if battery_connected is not None:
+                headset_connected = battery_connected
+            log.debug(
+                "Battery: level=%s charging=%s connected=%s",
+                battery_level,
+                battery_charging,
+                headset_connected,
+            )
 
         mix = current_chatmix()
 
-        if mix is None:
+        if mix is None or headset_connected is False:
             consecutive_failures += 1
             if consecutive_failures == 1:
                 log.warning("Headset not available, entering backoff")
