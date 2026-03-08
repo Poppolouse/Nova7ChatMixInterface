@@ -8,6 +8,7 @@ rm -f "$HOME/.local/bin/nova7-mixer"
 rm -f "$HOME/.local/bin/nova7-virtualaudio"
 rm -f "$HOME/.local/bin/cosmic-applet-nova-chatmix"
 rm -f "$HOME/.local/share/applications/io.github.poppolouse.CosmicAppletNovaChatMix.desktop"
+rm -rf "$HOME/.local/state/nova7-chatmix"
 "$(cd "$(dirname "$0")" && pwd)/scripts/remove-from-cosmic-panel.sh" || true
 systemctl --user daemon-reload
 

@@ -6,7 +6,9 @@ HOME_BIN="$HOME/.local/bin"
 HOME_APPS="$HOME/.local/share/applications"
 HOME_SYSTEMD="$HOME/.config/systemd/user"
 
-mkdir -p "$HOME_BIN" "$HOME_APPS" "$HOME_SYSTEMD"
+HOME_STATE="$HOME/.local/state/nova7-chatmix"
+
+mkdir -p "$HOME_BIN" "$HOME_APPS" "$HOME_SYSTEMD" "$HOME_STATE"
 
 install -m 0755 "$ROOT_DIR/mixer/nova7_mixer.py" "$HOME_BIN/nova7-mixer"
 install -m 0755 "$ROOT_DIR/scripts/nova7-virtualaudio.sh" "$HOME_BIN/nova7-virtualaudio"
