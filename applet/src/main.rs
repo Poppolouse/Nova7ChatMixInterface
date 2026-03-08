@@ -26,6 +26,7 @@ const GAME_SINK: &str = "GameMix";
 const CHAT_SINK: &str = "ChatMix";
 
 const STATE_FILE_MAX_AGE: Duration = Duration::from_secs(10);
+const BATTERY_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
 
 /// Apps known to manage their own audio routing, which may conflict with sink moves.
 const RESTRICTED_APPS: &[&str] = &["discord", "teams", "zoom", "slack"];
@@ -339,7 +340,7 @@ impl cosmic::Application for Applet {
     fn subscription(&self) -> Subscription<Message> {
         Subscription::batch(vec![
             cosmic::iced::time::every(Duration::from_secs(3)).map(|_| Message::RefreshLive),
-            cosmic::iced::time::every(Duration::from_secs(30)).map(|_| Message::RefreshBattery),
+            cosmic::iced::time::every(BATTERY_REFRESH_INTERVAL).map(|_| Message::RefreshBattery),
         ])
     }
 
@@ -371,10 +372,14 @@ impl cosmic::Application for Applet {
             Message::RefreshLive => {
                 let err = self.status.last_error.take();
                 let (bat, chg) = (self.status.battery_level, self.status.battery_charging);
+                let was_connected = self.status.headset_connected;
                 self.status.gather_live();
                 self.status.last_error = err;
                 self.status.battery_level = bat;
                 self.status.battery_charging = chg;
+                if self.status.headset_connected && (!was_connected || self.status.battery_level.is_none()) {
+                    self.status.gather_battery();
+                }
             }
             Message::RefreshBattery => {
                 self.status.gather_battery();
