@@ -17,6 +17,7 @@ It creates dedicated `GameMix` and `ChatMix` virtual sinks, reads the headset Ch
 - **Live connection detection** — the applet treats the headset as connected only when `headsetcontrol` can read live data, not merely when the USB dongle is plugged in
 - **State file** — the mixer writes live status to `~/.local/state/nova7-chatmix/status.json` (atomic writes) for the applet and external tools
 - **Structured logging** — configurable via the `NOVA7_LOG_LEVEL` environment variable
+- **Auto power-off control** — the mixer applies `inactive-time` on connect; default is `0` to disable headset auto-shutdown
 - **Resilient reconnection** — exponential backoff when the headset disconnects, automatic recovery on reconnect
 - **Signal handling** — clean shutdown on `SIGTERM` / `SIGINT`
 - Dedicated `GameMix` and `ChatMix` PipeWire sinks
@@ -148,6 +149,23 @@ Then add:
 [Service]
 Environment=NOVA7_LOG_LEVEL=DEBUG
 ```
+
+### `NOVA7_INACTIVE_TIME_MINUTES`
+
+Controls the headset's built-in auto power-off timer.
+
+```bash
+export NOVA7_INACTIVE_TIME_MINUTES=0
+```
+
+Values:
+
+- `0` disables headset auto power-off
+- `1` to `90` sets the idle timeout in minutes
+
+Default:
+
+- `0`
 
 ## Service Management
 

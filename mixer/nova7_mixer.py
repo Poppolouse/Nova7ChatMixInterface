@@ -16,6 +16,7 @@ BATTERY_POLL_SECONDS = 5
 MAX_BACKOFF_SECONDS = 10
 GAME_SINK = "GameMix"
 CHAT_SINK = "ChatMix"
+DEFAULT_INACTIVE_TIME_MINUTES = 0
 STATE_DIR = Path.home() / ".local" / "state" / "nova7-chatmix"
 STATE_FILE = STATE_DIR / "status.json"
 
@@ -38,6 +39,16 @@ def setup_logging() -> None:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
         datefmt="%Y-%m-%dT%H:%M:%S",
     )
+
+
+def configured_inactive_time() -> int:
+    raw = os.environ.get("NOVA7_INACTIVE_TIME_MINUTES", str(DEFAULT_INACTIVE_TIME_MINUTES))
+    try:
+        value = int(raw)
+    except ValueError:
+        log.warning("Invalid NOVA7_INACTIVE_TIME_MINUTES=%r, falling back to %d", raw, DEFAULT_INACTIVE_TIME_MINUTES)
+        return DEFAULT_INACTIVE_TIME_MINUTES
+    return max(0, min(90, value))
 
 
 def run_checked(*args: str) -> str:
@@ -176,6 +187,26 @@ def set_sink_volume(sink: str, percent: int) -> None:
         log.error("pactl not found; cannot set volume for sink %s", sink)
 
 
+def set_inactive_time(minutes: int) -> bool:
+    try:
+        proc = subprocess.run(
+            ["headsetcontrol", "-i", str(minutes)],
+            text=True,
+            capture_output=True,
+        )
+    except FileNotFoundError:
+        log.error("headsetcontrol not found; cannot set inactive time")
+        return False
+
+    if proc.returncode == 0:
+        log.info("Set headset inactive timeout to %d minute(s)", minutes)
+        return True
+
+    message = proc.stderr.strip() or proc.stdout.strip() or "unknown error"
+    log.warning("Failed to set inactive timeout to %d minute(s): %s", minutes, message)
+    return False
+
+
 def write_state(
     chatmix_level: int | None,
     game_volume: int,
@@ -215,6 +246,8 @@ def main() -> None:
         log.error("headsetcontrol is not installed or not in PATH")
         sys.exit(1)
 
+    inactive_time_minutes = configured_inactive_time()
+
     log.info("Nova7 ChatMix mixer started (poll=%ds, battery_poll=%ds)", POLL_SECONDS, BATTERY_POLL_SECONDS)
 
     last_mix: int | None = None
@@ -226,6 +259,7 @@ def main() -> None:
     last_battery_poll = 0.0
     backoff = POLL_SECONDS
     consecutive_failures = 0
+    inactive_time_applied = False
 
     while not _shutdown_requested:
         now = time.monotonic()
@@ -271,6 +305,10 @@ def main() -> None:
             backoff = POLL_SECONDS
             # Force a battery refresh on reconnect
             last_battery_poll = 0.0
+            inactive_time_applied = False
+
+        if not inactive_time_applied:
+            inactive_time_applied = set_inactive_time(inactive_time_minutes)
 
         state_changed = mix != last_mix
 
