@@ -1,0 +1,19 @@
+[package]
+name = "cosmic-applet-nova-chatmix"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[profile.release]
+lto = "thin"
+opt-level = 3
+debug = false
+
+[dependencies]
+env_logger = "0.11.8"
+log = "0.4.28"
+
+[dependencies.libcosmic]
+git = "https://github.com/pop-os/libcosmic.git"
+default-features = false
+features = ["applet-token"]

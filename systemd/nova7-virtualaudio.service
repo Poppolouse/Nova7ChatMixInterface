@@ -1,0 +1,11 @@
+[Unit]
+Description=Create PipeWire virtual sinks for Nova 7 ChatMix
+After=pipewire.service pipewire-pulse.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=%h/.local/bin/nova7-virtualaudio
+
+[Install]
+WantedBy=default.target

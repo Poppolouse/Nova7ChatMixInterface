@@ -1,0 +1,14 @@
+[Unit]
+Description=ChatMix for SteelSeries Arctis Nova 7
+After=pipewire.service pipewire-pulse.service
+Wants=nova7-virtualaudio.service
+After=nova7-virtualaudio.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=2
+ExecStart=%h/.local/bin/nova7-mixer
+
+[Install]
+WantedBy=default.target
