@@ -1,7 +1,8 @@
 use cosmic::app::{Core, Task};
+use cosmic::app::Settings;
 use cosmic::iced::platform_specific::shell::wayland::commands::popup::{destroy_popup, get_popup};
 use cosmic::iced::window::Id;
-use cosmic::iced::{Limits, Subscription, theme};
+use cosmic::iced::{Limits, Size, Subscription, theme};
 use cosmic::widget::{self, button, list_column, settings, text};
 use cosmic::Element;
 use log::warn;
@@ -14,6 +15,13 @@ const SERVICE_NAME: &str = "nova7-mixer.service";
 const EXPECTED_USB_ID: &str = "1038:2202";
 const EXPECTED_DEVICE_NAME: &str = "Arctis Nova 7";
 const PANEL_ICON: &str = "audio-headphones-symbolic";
+
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
+enum RunMode {
+    #[default]
+    Applet,
+    Window,
+}
 
 #[derive(Debug, Clone, Default)]
 struct AppStatus {
@@ -97,13 +105,14 @@ enum Message {
 
 struct Applet {
     core: Core,
+    mode: RunMode,
     popup: Option<Id>,
     status: AppStatus,
 }
 
 impl cosmic::Application for Applet {
     type Executor = cosmic::executor::Default;
-    type Flags = ();
+    type Flags = RunMode;
     type Message = Message;
 
     const APP_ID: &'static str = APP_ID;
@@ -116,10 +125,11 @@ impl cosmic::Application for Applet {
         &mut self.core
     }
 
-    fn init(core: Core, _flags: Self::Flags) -> (Self, Task<Self::Message>) {
+    fn init(core: Core, flags: Self::Flags) -> (Self, Task<Self::Message>) {
         (
             Self {
                 core,
+                mode: flags,
                 popup: None,
                 status: AppStatus::gather(),
             },
@@ -180,11 +190,15 @@ impl cosmic::Application for Applet {
     }
 
     fn view(&self) -> Element<'_, Message> {
-        self.core
-            .applet
-            .icon_button(PANEL_ICON)
-            .on_press(Message::TogglePopup)
-            .into()
+        match self.mode {
+            RunMode::Applet => self
+                .core
+                .applet
+                .icon_button(PANEL_ICON)
+                .on_press(Message::TogglePopup)
+                .into(),
+            RunMode::Window => self.window_content(),
+        }
     }
 
     fn view_window(&self, _id: Id) -> Element<'_, Message> {
@@ -261,6 +275,70 @@ impl cosmic::Application for Applet {
 }
 
 impl Applet {
+    fn window_content(&self) -> Element<'_, Message> {
+        widget::container(widget::scrollable(self.settings_content()))
+            .padding(16)
+            .width(cosmic::iced::Length::Fill)
+            .height(cosmic::iced::Length::Fill)
+            .into()
+    }
+
+    fn settings_content(&self) -> widget::ListColumn<'_, Message> {
+        let detected_devices = if self.status.devices.is_empty() {
+            "No SteelSeries USB devices found".to_string()
+        } else {
+            self.status.devices.join("\n")
+        };
+
+        let mut content = list_column()
+            .padding(8)
+            .spacing(8)
+            .add(widget::text::heading("Nova 7 ChatMix"))
+            .add(settings::item(
+                "Service",
+                text::body(self.status.service_active.clone()),
+            ))
+            .add(settings::item(
+                "Autostart",
+                text::body(self.status.service_enabled.clone()),
+            ))
+            .add(settings::item(
+                "Compatible device",
+                text::body(self.status.compatible_device_label.clone()),
+            ))
+            .add(settings::item(
+                "Controller access",
+                text::body(self.status.controller_status.clone()),
+            ))
+            .add(settings::item(
+                "Detected USB devices",
+                text::body(detected_devices),
+            ))
+            .add(settings::item(
+                "Last log line",
+                text::body(self.status.last_log_line.clone()),
+            ));
+
+        if let Some(error) = &self.status.last_error {
+            content = content.add(settings::item("Last error", text::body(error.clone())));
+        }
+
+        let actions = widget::row()
+            .spacing(8)
+            .push(button::standard("Start").on_press(Message::StartService))
+            .push(button::destructive("Stop").on_press(Message::StopService))
+            .push(button::standard("Restart").on_press(Message::RestartService));
+
+        let secondary_actions = widget::row()
+            .spacing(8)
+            .push(button::text("Recreate Mix Sinks").on_press(Message::RecreateMixSinks))
+            .push(button::text("Refresh").on_press(Message::Refresh));
+
+        content
+            .add(settings::item("Actions", actions))
+            .add(settings::item("Tools", secondary_actions))
+    }
+
     fn run_service_action(&mut self, action: &str) {
         let result = Command::new("systemctl")
             .args(["--user", action, SERVICE_NAME])
@@ -324,5 +402,20 @@ fn main() -> cosmic::iced::Result {
         .write_style_or("RUST_LOG_STYLE", "always");
     env_logger::init_from_env(env);
 
-    cosmic::applet::run::<Applet>(())
+    let mode = if env::args().any(|arg| arg == "--window") {
+        RunMode::Window
+    } else {
+        RunMode::Applet
+    };
+
+    match mode {
+        RunMode::Applet => cosmic::applet::run::<Applet>(mode),
+        RunMode::Window => cosmic::app::run::<Applet>(
+            Settings::default()
+                .size(Size::new(480.0, 960.0))
+                .size_limits(Limits::NONE.min_width(480.0).min_height(960.0))
+                .exit_on_close(true),
+            mode,
+        ),
+    }
 }
