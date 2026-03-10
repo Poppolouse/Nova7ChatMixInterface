@@ -1,12 +1,12 @@
 [Desktop Entry]
 Name=Nova ChatMix
-Exec=cosmic-applet-nova-chatmix
+Exec=/home/poppolouse/.local/bin/cosmic-applet-nova-chatmix
 Terminal=false
 Type=Application
 StartupNotify=true
 NotShowIn=COSMIC
 Icon=audio-headphones-symbolic
-Categories=COSMIC;Audio;Utility;
+Categories=AudioVideo;Audio;Utility;
 Keywords=Nova;ChatMix;SteelSeries;Audio;Headset;
 X-CosmicApplet=true
 X-CosmicHoverPopup=Auto

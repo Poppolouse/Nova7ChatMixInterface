@@ -9,6 +9,7 @@ Type=simple
 Restart=always
 RestartSec=2
 ExecStart=%h/.local/bin/nova7-mixer
+Environment=NOVA7_POLL_PROFILE=balanced
 
 [Install]
 WantedBy=default.target

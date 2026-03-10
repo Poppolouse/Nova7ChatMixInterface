@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Nova ChatMix
+Comment=Control SteelSeries Nova 7 ChatMix on GNOME
+Exec=/home/poppolouse/.local/bin/nova-chatmix-gnome
+Terminal=false
+Type=Application
+Icon=audio-headphones-symbolic
+Categories=AudioVideo;
+Keywords=Nova;ChatMix;SteelSeries;Headset;Audio;
+StartupNotify=true

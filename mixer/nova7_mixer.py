@@ -11,7 +11,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from shutil import which
 
-POLL_SECONDS = 1
+DEFAULT_POLL_SECONDS = 0.1
+POLL_PROFILE_SECONDS = {
+    "balanced": 0.1,
+    "ultra": 0.05,
+}
 BATTERY_POLL_SECONDS = 5
 MAX_BACKOFF_SECONDS = 10
 GAME_SINK = "GameMix"
@@ -49,6 +53,20 @@ def configured_inactive_time() -> int:
         log.warning("Invalid NOVA7_INACTIVE_TIME_MINUTES=%r, falling back to %d", raw, DEFAULT_INACTIVE_TIME_MINUTES)
         return DEFAULT_INACTIVE_TIME_MINUTES
     return max(0, min(90, value))
+
+
+def configured_poll_seconds() -> float:
+    profile = os.environ.get("NOVA7_POLL_PROFILE", "").strip().lower()
+    if profile in POLL_PROFILE_SECONDS:
+        return POLL_PROFILE_SECONDS[profile]
+
+    raw = os.environ.get("NOVA7_POLL_SECONDS", str(DEFAULT_POLL_SECONDS))
+    try:
+        value = float(raw)
+    except ValueError:
+        log.warning("Invalid NOVA7_POLL_SECONDS=%r, falling back to %.2f", raw, DEFAULT_POLL_SECONDS)
+        return DEFAULT_POLL_SECONDS
+    return max(0.05, min(2.0, value))
 
 
 def run_checked(*args: str) -> str:
@@ -247,8 +265,9 @@ def main() -> None:
         sys.exit(1)
 
     inactive_time_minutes = configured_inactive_time()
+    poll_seconds = configured_poll_seconds()
 
-    log.info("Nova7 ChatMix mixer started (poll=%ds, battery_poll=%ds)", POLL_SECONDS, BATTERY_POLL_SECONDS)
+    log.info("Nova7 ChatMix mixer started (poll=%.2fs, battery_poll=%ds)", poll_seconds, BATTERY_POLL_SECONDS)
 
     last_mix: int | None = None
     game_vol = 100
@@ -257,7 +276,7 @@ def main() -> None:
     battery_charging: bool | None = None
     headset_connected = False
     last_battery_poll = 0.0
-    backoff = POLL_SECONDS
+    backoff = poll_seconds
     consecutive_failures = 0
     inactive_time_applied = False
 
@@ -302,7 +321,7 @@ def main() -> None:
         if consecutive_failures > 0:
             log.info("Headset reconnected after %d failed polls", consecutive_failures)
             consecutive_failures = 0
-            backoff = POLL_SECONDS
+            backoff = poll_seconds
             # Force a battery refresh on reconnect
             last_battery_poll = 0.0
             inactive_time_applied = False
@@ -329,7 +348,7 @@ def main() -> None:
             headset_connected=True,
         )
 
-        time.sleep(POLL_SECONDS)
+        time.sleep(poll_seconds)
 
     log.info("Mixer shut down cleanly")
 

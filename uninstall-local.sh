@@ -6,9 +6,15 @@ rm -f "$HOME/.config/systemd/user/nova7-mixer.service"
 rm -f "$HOME/.config/systemd/user/nova7-virtualaudio.service"
 rm -f "$HOME/.local/bin/nova7-mixer"
 rm -f "$HOME/.local/bin/nova7-virtualaudio"
+rm -f "$HOME/.local/bin/nova-chatmix-gnome"
+rm -f "$HOME/.local/bin/nova-chatmix-indicator"
 rm -f "$HOME/.local/bin/cosmic-applet-nova-chatmix"
+rm -f "$HOME/.local/bin/cosmic-applet-nova-chatmix.bin"
+rm -f "$HOME/.local/share/applications/io.github.poppolouse.NovaChatMix.desktop"
 rm -f "$HOME/.local/share/applications/io.github.poppolouse.CosmicAppletNovaChatMix.desktop"
+rm -f "$HOME/.config/autostart/io.github.poppolouse.NovaChatMixTray.desktop"
 rm -rf "$HOME/.local/state/nova7-chatmix"
+pkill -f "$HOME/.local/bin/nova-chatmix-indicator" >/dev/null 2>&1 || true
 "$(cd "$(dirname "$0")" && pwd)/scripts/remove-from-cosmic-panel.sh" || true
 systemctl --user daemon-reload
 

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Nova ChatMix Tray
+Comment=System tray helper for Nova ChatMix
+Exec=/home/poppolouse/.local/bin/nova-chatmix-indicator
+Terminal=false
+Type=Application
+Icon=audio-headphones-symbolic
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
