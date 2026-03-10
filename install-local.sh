@@ -19,6 +19,7 @@ install -m 0755 "$ROOT_DIR/gnome/nova_chatmix_gnome.py" "$HOME_BIN/nova-chatmix-
 install -m 0755 "$ROOT_DIR/gnome/nova_chatmix_indicator.py" "$HOME_BIN/nova-chatmix-indicator"
 install -m 0644 "$ROOT_DIR/systemd/nova7-mixer.service" "$HOME_SYSTEMD/nova7-mixer.service"
 install -m 0644 "$ROOT_DIR/systemd/nova7-virtualaudio.service" "$HOME_SYSTEMD/nova7-virtualaudio.service"
+install -m 0644 "$ROOT_DIR/systemd/nova-chatmix-indicator.service" "$HOME_SYSTEMD/nova-chatmix-indicator.service"
 install -m 0644 "$ROOT_DIR/gnome/io.github.poppolouse.NovaChatMix.desktop" "$HOME_APPS/io.github.poppolouse.NovaChatMix.desktop"
 install -m 0644 "$ROOT_DIR/gnome/io.github.poppolouse.NovaChatMixTray.desktop" "$HOME_AUTOSTART/io.github.poppolouse.NovaChatMixTray.desktop"
 
@@ -44,15 +45,13 @@ else
 fi
 
 systemctl --user daemon-reload
-systemctl --user enable nova7-virtualaudio.service nova7-mixer.service >/dev/null
-systemctl --user restart nova7-virtualaudio.service nova7-mixer.service
+systemctl --user enable nova7-virtualaudio.service nova7-mixer.service nova-chatmix-indicator.service >/dev/null
+systemctl --user restart nova7-virtualaudio.service nova7-mixer.service nova-chatmix-indicator.service
 if [ "${XDG_CURRENT_DESKTOP:-}" = "COSMIC" ]; then
   install -m 0644 "$ROOT_DIR/applet/res/io.github.poppolouse.CosmicAppletNovaChatMix.desktop" "$HOME_APPS/io.github.poppolouse.CosmicAppletNovaChatMix.desktop"
   "$ROOT_DIR/scripts/add-to-cosmic-panel.sh" || true
 else
   rm -f "$HOME_APPS/io.github.poppolouse.CosmicAppletNovaChatMix.desktop"
 fi
-pkill -f "$HOME_BIN/nova-chatmix-indicator" >/dev/null 2>&1 || true
-nohup "$HOME_BIN/nova-chatmix-indicator" >/dev/null 2>&1 &
 
 echo "Installed to $HOME"

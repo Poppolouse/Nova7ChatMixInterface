@@ -215,17 +215,27 @@ def parse_sink_inputs() -> List[SinkInput]:
     current_id: Optional[int] = None
     current_sink: Optional[str] = None
     current_app: Optional[str] = None
+    current_binary: Optional[str] = None
+    current_app_id: Optional[str] = None
+    current_media_name: Optional[str] = None
 
     def flush() -> None:
-        nonlocal current_id, current_sink, current_app
-        if current_id is None or current_app is None:
+        nonlocal current_id, current_sink, current_app, current_binary, current_app_id, current_media_name
+        if current_id is None:
+            return
+        app_name = current_app or current_binary
+        if current_app_id:
+            app_name = current_app_id.rsplit(".", 1)[-1]
+        if current_media_name == "playStream" and current_binary:
+            app_name = current_binary
+        if not app_name:
             return
         sink_name = sink_map.get(current_sink or "", f"sink#{current_sink or '?'}")
-        app_lower = current_app.lower()
+        app_lower = app_name.lower()
         items.append(
             SinkInput(
                 input_id=current_id,
-                app_name=current_app,
+                app_name=app_name,
                 sink_name=sink_name,
                 restricted=any(name in app_lower for name in RESTRICTED_APPS),
             )
@@ -238,11 +248,23 @@ def parse_sink_inputs() -> List[SinkInput]:
             current_id = int(line.removeprefix("Sink Input #"))
             current_sink = None
             current_app = None
+            current_binary = None
+            current_app_id = None
+            current_media_name = None
         elif line.startswith("Sink:"):
             current_sink = line.removeprefix("Sink:").strip()
         elif line.startswith("application.name"):
             _, _, value = line.partition("=")
             current_app = value.strip().strip('"')
+        elif line.startswith("application.process.binary"):
+            _, _, value = line.partition("=")
+            current_binary = value.strip().strip('"')
+        elif line.startswith("pipewire.access.portal.app_id"):
+            _, _, value = line.partition("=")
+            current_app_id = value.strip().strip('"')
+        elif line.startswith("media.name"):
+            _, _, value = line.partition("=")
+            current_media_name = value.strip().strip('"')
 
     flush()
     return items

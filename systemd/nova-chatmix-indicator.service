@@ -1,0 +1,13 @@
+[Unit]
+Description=Nova ChatMix tray indicator
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/nova-chatmix-indicator
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target
