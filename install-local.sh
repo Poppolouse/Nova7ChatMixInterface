@@ -17,7 +17,9 @@ install -m 0755 "$ROOT_DIR/mixer/nova7_mixer.py" "$HOME_BIN/nova7-mixer"
 install -m 0755 "$ROOT_DIR/scripts/nova7-virtualaudio.sh" "$HOME_BIN/nova7-virtualaudio"
 install -m 0755 "$ROOT_DIR/gnome/nova_chatmix_gnome.py" "$HOME_BIN/nova-chatmix-gnome"
 install -m 0755 "$ROOT_DIR/gnome/nova_chatmix_indicator.py" "$HOME_BIN/nova-chatmix-indicator"
+install -m 0755 "$ROOT_DIR/mixer/nova7_audio_priority.py" "$HOME_BIN/nova7-audio-priority"
 install -m 0644 "$ROOT_DIR/systemd/nova7-mixer.service" "$HOME_SYSTEMD/nova7-mixer.service"
+install -m 0644 "$ROOT_DIR/systemd/nova7-audio-priority.service" "$HOME_SYSTEMD/nova7-audio-priority.service"
 install -m 0644 "$ROOT_DIR/systemd/nova7-virtualaudio.service" "$HOME_SYSTEMD/nova7-virtualaudio.service"
 install -m 0644 "$ROOT_DIR/systemd/nova-chatmix-indicator.service" "$HOME_SYSTEMD/nova-chatmix-indicator.service"
 install -m 0644 "$ROOT_DIR/gnome/io.github.poppolouse.NovaChatMix.desktop" "$HOME_APPS/io.github.poppolouse.NovaChatMix.desktop"
@@ -45,8 +47,8 @@ else
 fi
 
 systemctl --user daemon-reload
-systemctl --user enable nova7-virtualaudio.service nova7-mixer.service nova-chatmix-indicator.service >/dev/null
-systemctl --user restart nova7-virtualaudio.service nova7-mixer.service nova-chatmix-indicator.service
+systemctl --user enable nova7-virtualaudio.service nova7-mixer.service nova-chatmix-indicator.service nova7-audio-priority.service >/dev/null
+systemctl --user restart nova7-virtualaudio.service nova7-mixer.service nova-chatmix-indicator.service nova7-audio-priority.service
 if [ "${XDG_CURRENT_DESKTOP:-}" = "COSMIC" ]; then
   install -m 0644 "$ROOT_DIR/applet/res/io.github.poppolouse.CosmicAppletNovaChatMix.desktop" "$HOME_APPS/io.github.poppolouse.CosmicAppletNovaChatMix.desktop"
   "$ROOT_DIR/scripts/add-to-cosmic-panel.sh" || true
